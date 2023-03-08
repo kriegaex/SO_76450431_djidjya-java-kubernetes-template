@@ -20,7 +20,7 @@ build_image:
   script:
     - cp $SETTINGS_XML settings.xml
     - echo "$REGISTRY_PASSWORD" | docker login --username $REGISTRY_USER --password-stdin cr.yandex
-    - docker build -t cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} .
+    - DOCKER_BUILDKIT=1 docker build -t cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} .
     - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4}
     - docker tag cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
     - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
