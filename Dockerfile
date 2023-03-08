@@ -1,17 +1,19 @@
-FROM maven:3.8.1-openjdk-17-slim AS build
+FROM openjdk:17-jdk-slim AS build
 
 WORKDIR /build
 
 RUN mkdir -p /root/.m2 \
       && mkdir /root/.m2/repository
 
+COPY .mvn .mvn
+COPY mvnw .
 COPY pom.xml .
-RUN mvn dependency:go-offline
+RUN ./mvnw -B dependency:go-offline
 
 COPY src src
-RUN mvn package -Dmaven.test.skip=true
+RUN ./mvnw package -Dmaven.test.skip=true
 
-FROM openjdk:17-jdk
+FROM openjdk:17-jdk-slim
 
 ENV ARTIFACT_ID=djidya-java-kubernetes-template
 ENV VERSION=0.0.1-SNAPSHOT
