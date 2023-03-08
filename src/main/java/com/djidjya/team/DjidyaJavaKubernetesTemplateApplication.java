@@ -19,5 +19,4 @@ public class DjidyaJavaKubernetesTemplateApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(DjidyaJavaKubernetesTemplateApplication.class, args);
 	}
-
 }
