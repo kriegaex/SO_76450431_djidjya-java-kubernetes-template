@@ -9,9 +9,6 @@ build_image:
 
       Service: [${CI_PROJECT_NAME}](${CI_PROJECT_URL})
 
-      Branch: ${CI_COMMIT_BRANCH}
-      ${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME} -> ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
-
       Author: [${CI_COMMIT_AUTHOR}](${CI_SERVER_URL}/${CI_COMMIT_AUTHOR})
       Commit: [${CI_COMMIT_MESSAGE}](${CI_REPOSITORY_URL}/-/commit/${CI_COMMIT_SHA})
 
