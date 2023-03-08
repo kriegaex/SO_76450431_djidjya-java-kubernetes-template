@@ -6,9 +6,9 @@ RUN mkdir -p /root/.m2 \
       && mkdir /root/.m2/repository
 
 COPY .mvn .mvn
-COPY mvnw .
+COPY --chmod=777 mvnw .
 COPY pom.xml .
-RUN ./mvnw -B dependency:go-offline
+RUN sh -c "mvnw -B dependency:go-offline"
 
 COPY src src
 RUN ./mvnw package -Dmaven.test.skip=true
