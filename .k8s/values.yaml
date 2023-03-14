@@ -1,1 +1,17 @@
 replicaCount: 1
+envMap:
+  - name: POSTGRES_URL
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: postgresUrl
+  - name: POSTGRES_USER
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: postgresUser
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: postgresPassword

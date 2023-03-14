@@ -1,44 +1,114 @@
 stages:
   - build
+  - check
+  - config
   - deploy
+  - notify
+
+.notify: &notify
+  script:
+    - echo "$MESSAGE_TEXT"
+    - >
+      curl -X POST -H
+      "Content-Type: application/json"
+      -d '{"chat_id": '"$CHAT_ID"', "parse_mode": "markdown", "text": "'"${MESSAGE_TEXT}"'"}'
+      https://api.telegram.org/bot${BOT_TOKEN}/sendMessage
+
+
 build_image:
   stage: build
+  script:
+    - cp $SETTINGS_XML settings.xml
+    - echo "$REGISTRY_PASSWORD" | docker login --username $REGISTRY_USER --password-stdin cr.yandex
+    - DOCKER_BUILDKIT=1 docker build --build-arg CI_PROJECT_NAME=$CI_PROJECT_NAME -t cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA
+    - docker tag cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
+    - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
+
+build_image:notify_success:
+  stage: check
+  needs: ["build_image"]
   variables:
     MESSAGE_TEXT: |
       Job: *BUILD*
 
+      Status: *SUCCESS*
+
       Service: [${CI_PROJECT_NAME}](${CI_PROJECT_URL})
 
       Author: [${CI_COMMIT_AUTHOR}](${CI_SERVER_URL}/${CI_COMMIT_AUTHOR})
-      Commit: [${CI_COMMIT_MESSAGE}](${CI_REPOSITORY_URL}/-/commit/${CI_COMMIT_SHA})
+      Commit: [${CI_COMMIT_MESSAGE}](${CI_REPOSITORY_URL}/-/commit/${CI_COMMIT_SHORT_SHA})
 
-      Image: [`$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4}`](${CONTAINER_REGISTRY_URL}/${CI_PROJECT_NAME}/image)
+      Image: [$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA](${CONTAINER_REGISTRY_URL}/${CI_PROJECT_NAME}/image)
+  <<: *notify
 
-  script:
-    - cp $SETTINGS_XML settings.xml
-    - echo "$REGISTRY_PASSWORD" | docker login --username $REGISTRY_USER --password-stdin cr.yandex
-    - DOCKER_BUILDKIT=1 docker build -t cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} .
-    - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4}
-    - docker tag cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
-    - docker push cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:latest
-    - "curl -X POST -H \"Content-Type: application/json\" -d '{\"chat_id\": \"'\"$CHAT_ID\"'\", \"parse_mode\": \"markdown\", \"text\": \"'\"${MESSAGE_TEXT}\"'\"}' https://api.telegram.org/bot${BOT_TOKEN}/sendMessage"
-  only:
-    - main
-
-deploy_to_prod:
-  stage: deploy
+build_image:notify_failure:
+  stage: check
   variables:
     MESSAGE_TEXT: |
-      Job: *DEPLOY*
+      Job: *BUILD*
+
+      Status: *FAILED*
 
       Service: [${CI_PROJECT_NAME}](${CI_PROJECT_URL})
+      Pipeline: [URL](${CI_PIPELINE_URL})
 
-      Image: [`$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4}`](${CONTAINER_REGISTRY_URL}/${CI_PROJECT_NAME}/image)
+      Author: [${CI_COMMIT_AUTHOR}](${CI_SERVER_URL}/${CI_COMMIT_AUTHOR})
+      Commit: [${CI_COMMIT_MESSAGE}](${CI_REPOSITORY_URL}/-/commit/${CI_COMMIT_SHORT_SHA})
+  when: on_failure
 
+  <<: *notify
+
+config:
+  stage: config
+  variables:
+    CM_ARG: cm -n djidjya-api $CI_PROJECT_NAME
   environment:
     name: staging
   script:
-    - helm upgrade -f .k8s/values.yaml --set container.image=cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:${CI_COMMIT_SHA:0:4} ${CI_PROJECT_NAME} djidjya-helm-chart/Djidjya-HelmChart
-    - "curl -X POST -H \"Content-Type: application/json\" -d '{\"chat_id\": \"'\"$CHAT_ID\"'\", \"parse_mode\": \"markdown\", \"text\": \"'\"${MESSAGE_TEXT}\"'\"}' https://api.telegram.org/bot${BOT_TOKEN}/sendMessage"
-  only:
-    - main
+    - kubectl get $CM_ARG || kubectl create $CM_ARG --from-env-file=$DJIDJYA_BOOT_PROPERTIES
+
+deployment:
+  stage: deploy
+  variables:
+    HELM_ARGS: |
+      -f .k8s/values.yaml 
+      --namespace djidjya-api
+      --set container.image=cr.yandex/$REGISTRY_URL/$CI_PROJECT_NAME:$CI_COMMIT_SHORT_SHA
+      $CI_PROJECT_NAME
+      djidjya-helm-chart/Djidjya-HelmChart
+  environment:
+    name: staging
+  script:
+    - helm upgrade $HELM_ARGS --install
+
+deployment_success:
+  stage: notify
+  when: on_success
+  variables:
+    MESSAGE_TEXT: |
+      Job: *DEPLOY*
+      Status: *SUCCESS*
+
+      Service: [${CI_PROJECT_NAME}](${CI_PROJECT_URL})
+      Pipeline: [URL](${CI_PIPELINE_URL})
+
+      Environment: [URL](https://djidja.ru)
+
+  <<: *notify
+
+deployment_failure:
+  stage: notify
+  needs: ["build_image", "deployment"]
+  when: on_failure
+  variables:
+    MESSAGE_TEXT: |
+      Job: *DEPLOY*
+      Status: *FAILED*
+
+      Service: [${CI_PROJECT_NAME}](${CI_PROJECT_URL})
+
+      Pipeline: [URL](${CI_PIPELINE_URL})
+
+
+  <<: *notify
