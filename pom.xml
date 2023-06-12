@@ -35,39 +35,15 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.5.0</version>
         </dependency>
-        <dependency>
-            <groupId>com.djidjya.team</groupId>
-            <artifactId>djidjya-boot-starter</artifactId>
-            <version>${djidjya.boot.starter.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-        </dependency>
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bom</artifactId>
-                <version>${aws.sdk.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <plugins>
@@ -80,6 +56,10 @@
                         <weaveDependency>
                             <groupId>org.springframework</groupId>
                             <artifactId>spring-jdbc</artifactId>
+                        </weaveDependency>
+                        <weaveDependency>
+                            <groupId>org.hibernate.orm</groupId> <!-- Cause exception on compile time -->
+                            <artifactId>hibernate-core</artifactId>
                         </weaveDependency>
                     </weaveDependencies>
                     <aspectLibraries>
