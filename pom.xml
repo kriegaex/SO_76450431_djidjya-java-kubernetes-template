@@ -17,12 +17,36 @@
     <description>djidya-java-kubernetes-template</description>
 
     <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <aws.sdk.version>1.11.1000</aws.sdk.version>
         <djidjya.boot.starter.version>2.10</djidjya.boot.starter.version>
         <spring-cloud.version>2022.0.1</spring-cloud.version>
         <db.analyzer.version>1.0</db.analyzer.version>
-        <aspect.compiler.plugin.version>1.14.0</aspect.compiler.plugin.version>
-    </properties>
+        <aspect.compiler.plugin.version>1.13.1</aspect.compiler.plugin.version>
+        <aspectj.version>1.9.20-SNAPSHOT</aspectj.version>
+     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Make sure that all AspectJ dependencies use the same version  -->
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjtools</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -48,7 +72,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
+                <groupId>dev.aspectj</groupId>
                 <artifactId>aspectj-maven-plugin</artifactId>
                 <version>${aspect.compiler.plugin.version}</version>
                 <configuration>
@@ -68,7 +92,7 @@
                             <artifactId>db-analyzer</artifactId>
                         </aspectLibrary>
                     </aspectLibraries>
-                    <complianceLevel>11</complianceLevel>
+                    <complianceLevel>${maven.compiler.target}</complianceLevel>
                     <showWeaveInfo>true</showWeaveInfo>
                     <Xlint>ignore</Xlint>
                     <encoding>UTF-8</encoding>
@@ -81,6 +105,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
